@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio de Turno y Calculadora WiWANG</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo burger.PNG">
+    <style>
+        
+    body {
+            background-image: url('logo fondo.png');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-opacity-90">
+    <!-- Sección de Inicio de Turno -->
+    <div id="inicio-turno">
+        <div class="bg-black text-pink-400 text-center py-4">
+            <h1 class="text-3xl font-bold">Inicio de Turno Wiwang</h1>
+        </div>
+        <div class="flex items-center justify-center min-h-screen py-8">
+            <form id="turno-form" class="bg-white shadow-lg rounded-lg p-6 max-w-md w-full">
+                <div class="mb-4">
+                    <label for="mesero-nombre" class="block text-lg font-semibold">Nombre del Mesero:</label>
+                    <input type="text" id="mesero-nombre" class="border border-gray-300 rounded w-full px-3 py-2" placeholder="Ingresa tu nombre" required>
+                </div>
+                <div class="mb-4">
+                    <label for="mesero-rango" class="block text-lg font-semibold">Rango:</label>
+                    <select id="mesero-rango" class="border border-gray-300 rounded w-full px-3 py-2" required>
+                        <option value="">Selecciona un rango</option>
+                        <option value="Bartender">Bartender</option>
+                    </select>
+                </div>
+                <!-- Botón Entrar al Turno -->
+                <button type="submit" class="bg-black text-pink-400 px-4 py-2 rounded w-full">Entrar al Turno</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sección de Calculadora -->
+    <div id="calculadora" class="hidden">
+        <!-- Título con franja roja -->
+        <div class="bg-black text-pink-400 text-center py-4">
+            <h1 class="text-3xl font-bold">Calculadora Wiwang</h1>
+        </div>
+
+        <!-- Notificaciones -->
+        <div id="notification" class="hidden fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg">
+            <p id="notification-message"></p>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="container mx-auto py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Comestibles -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-pink-400 mb-4 bg-black p-2 rounded text-center">Comestibles</h2>
+                    <div id="comestibles" class="grid gap-4"></div>
+                </div>
+
+                <!-- Bebestibles -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-pink-400 mb-4 bg-black p-2 rounded text-center">Bebestibles</h2>
+                    <div id="bebestibles" class="grid gap-4"></div>
+                </div>
+
+                <!-- Cajas -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-pink-400 mb-4 bg-black p-2 rounded text-center">Cajas</h2>
+                    <div id="cajas" class="grid gap-4"></div>
+                </div>
+
+                <!-- Carrito -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-pink-400 mb-4 bg-black p-2 rounded text-center">Carrito</h2>
+                    <div class="bg-black text-pink-400 shadow-lg rounded-lg p-6">
+                        <div id="cart-items" class="space-y-4"></div>
+                        <p class="text-lg bg-black text-pink-400 p-2 rounded">Total: $<span id="cart-total">0</span></p>
+                        <div class="space-y-2 mt-4">
+                            <!-- Botón Registrar Venta -->
+                            <button id="register-sale" class="bg-black text-pink-400 px-4 py-2 rounded w-full">Registrar Venta</button>
+                            <button id="clear-cart" class="bg-gray-600 text-white px-4 py-2 rounded w-full">Vaciar Carrito</button>
+                            <button id="close-turno" class="bg-red-600 text-white px-4 py-2 rounded w-full">Cerrar Turno</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const turnoForm = document.getElementById("turno-form");
+        const calculadoraSection = document.getElementById("calculadora");
+        const inicioTurnoSection = document.getElementById("inicio-turno");
+        const cartItems = document.getElementById("cart-items");
+        const cartTotal = document.getElementById("cart-total");
+        const notification = document.getElementById("notification");
+        const notificationMessage = document.getElementById("notification-message");
+
+        let cart = [];
+        let salesHistory = JSON.parse(localStorage.getItem("salesHistory")) || [];
+
+        turnoForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            const nombre = document.getElementById("mesero-nombre").value;
+            const rango = document.getElementById("mesero-rango").value;
+            const entrada = new Date();
+
+            localStorage.setItem("mesero", JSON.stringify({ nombre, rango, entrada }));
+            inicioTurnoSection.classList.add("hidden");
+            calculadoraSection.classList.remove("hidden");
+            generateProducts();
+        });
+
+        function showNotification(message) {
+            notificationMessage.textContent = message;
+            notification.classList.remove("hidden");
+            setTimeout(() => notification.classList.add("hidden"), 3000);
+        }
+
+        function updateCart() {
+            cartItems.innerHTML = "";
+            let total = 0;
+            cart.forEach(item => {
+                total += item.cantidad * item.precio;
+                const div = document.createElement("div");
+                div.textContent = `${item.nombre} x${item.cantidad} - $${item.cantidad * item.precio}`;
+                cartItems.appendChild(div);
+            });
+            cartTotal.textContent = total;
+        }
+
+        document.getElementById("clear-cart").addEventListener("click", () => {
+            cart = [];
+            updateCart();
+            showNotification("Carrito vaciado.");
+        });
+
+        document.getElementById("register-sale").addEventListener("click", () => {
+            if (cart.length === 0) {
+                alert("El carrito está vacío.");
+                return;
+            }
+            salesHistory.push([...cart]);
+            localStorage.setItem("salesHistory", JSON.stringify(salesHistory));
+            showNotification("Venta registrada con éxito.");
+            cart = [];
+            updateCart();
+        });
+
+        document.getElementById("close-turno").addEventListener("click", () => {
+            const turno = JSON.parse(localStorage.getItem("mesero"));
+            if (!turno) {
+                alert("No hay un turno activo.");
+                return;
+            }
+            const salida = new Date();
+            const entrada = new Date(turno.entrada);
+            const horas = Math.floor((salida - entrada) / 3600000);
+            const minutos = Math.floor(((salida - entrada) % 3600000) / 60000);
+
+            let totalVentas = 0;
+            let ventasTexto = `Detalles del Turno\n\nNombre: ${turno.nombre}\nRango: ${turno.rango}\nEntrada: ${entrada.toLocaleString()}\nSalida: ${salida.toLocaleString()}\nTiempo en Turno: ${horas} horas y ${minutos} minutos\n`;
+
+            salesHistory.forEach((venta, i) => {
+                let subtotal = 0;
+                ventasTexto += `\nVenta ${i + 1}:\n`;
+                venta.forEach(item => {
+                    const itemTotal = item.cantidad * item.precio;
+                    subtotal += itemTotal;
+                    ventasTexto += `- ${item.nombre} x${item.cantidad}: $${itemTotal}\n`;
+                });
+                totalVentas += subtotal;
+                ventasTexto += `Subtotal: $${subtotal}\n`;
+            });
+
+            ventasTexto += `\nTotal de Ventas: $${totalVentas}`;
+
+            const blob = new Blob([ventasTexto], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "turno.txt";
+            link.click();
+
+            localStorage.removeItem("mesero");
+            localStorage.removeItem("salesHistory");
+            window.location.reload();
+        });
+
+        const productos = [
+            { id: 1, tipo: "comestible", nombre: "Shin Ramyun", precio: 1000, imagen: "Shin Ramyun.png" },
+            { id: 2, tipo: "comestible", nombre: "Rosé Tteokbokki", precio: 1000, imagen: "Rosé Tteokbokki.png" },
+            { id: 3, tipo: "comestible", nombre: "Kimchi Jeon", precio: 1000, imagen: "Kimchi Jeon.png" },
+            { id: 4, tipo: "comestible", nombre: "Dakganjeong", precio: 1000, imagen: "Dakganjeong.png" },
+            { id: 5, tipo: "comestible", nombre: "Sotteok", precio: 1000, imagen: "Sotteok.png" },
+            { id: 6, tipo: "comestible", nombre: "Gamja Hotdog", precio: 1000, imagen: "Gamja Hotdog.png" },
+            { id: 7, tipo: "comestible", nombre: "Galbi", precio: 1000, imagen: "Galbi.png" },
+            { id: 8, tipo: "bebestible", nombre: "Soju de Melocotón", precio: 1000, imagen: "Soju de Melocotón.png" },
+            { id: 9, tipo: "bebestible", nombre: "Soju de Uva", precio: 1000, imagen: "Soju de Uva.png" },
+            { id: 10, tipo: "bebestible", nombre: "Maekju (cerverza)", precio: 1000, imagen: "Maekju.png" },
+            { id: 11, tipo: "bebestible", nombre: "Milkis (soda) sin Alcohol", precio: 1000, imagen: "Milkis.png" },
+            { id: 12, tipo: "bebestible", nombre: "Leche de plátano sin Alcohol", precio: 1000, imagen: "Leche de plátano.png" },
+            { id: 12, tipo: "Caja ", nombre: "Caja 3 x 3", precio: 5000, imagen: "Caja.png" },
+            { id: 13, tipo: "Caja ", nombre: "Caja 12 x 12", precio: 20000, imagen: "Caja.png" },
+            { id: 14, tipo: "Caja ", nombre: "Caja Marvel (6x6) + Coleccionable ", precio: 15000, imagen: "Caja.png" }
+        ];
+
+        function generateProducts() {
+            productos.forEach(product => {
+                const div = document.createElement("div");
+                div.className = "bg-black text-pink-400 shadow-lg rounded-lg p-4 flex items-center";
+                div.innerHTML = `
+                    <img src="${product.imagen}" alt="${product.nombre}" class="w-12 h-12 mr-4">
+                    <div class="flex-1">
+                        <p class="text-xl font-bold">${product.nombre}</p>
+                        <p class="text-lg text-pink-200">Precio: $${product.precio}</p>
+                        <div class="flex items-center space-x-4 mt-2">
+                            <button class="bg-gray-300 px-2 py-1 rounded decrease">-</button>
+                            <input type="number" value="1" min="1" class="quantity-input border rounded w-12 text-center" />
+                            <button class="bg-gray-300 px-2 py-1 rounded increase">+</button>
+                        </div>
+                    </div>
+                    <button class="bg-red-600 text-white px-4 py-2 rounded ml-4 add-to-cart">Añadir</button>
+                `;
+
+                const quantityInput = div.querySelector(".quantity-input");
+                const decreaseBtn = div.querySelector(".decrease");
+                const increaseBtn = div.querySelector(".increase");
+                const addToCartBtn = div.querySelector(".add-to-cart");
+
+                decreaseBtn.addEventListener("click", () => {
+                    quantityInput.value = Math.max(1, parseInt(quantityInput.value) - 1);
+                });
+
+                increaseBtn.addEventListener("click", () => {
+                    quantityInput.value = parseInt(quantityInput.value) + 1;
+                });
+
+                addToCartBtn.addEventListener("click", () => {
+                    addToCart(product, parseInt(quantityInput.value));
+                    showNotification(`${product.nombre} añadido al carrito.`);
+                });
+
+                let container = "bebestibles";
+                if (product.tipo === "comestible") container = "comestibles";
+                else if (product.tipo.trim().toLowerCase() === "caja") container = "cajas";
+                document.getElementById(container).appendChild(div);
+            });
+        }
+
+        function addToCart(product, cantidad) {
+            const existing = cart.find(item => item.id === product.id);
+            if (existing) {
+                existing.cantidad += cantidad;
+            } else {
+                cart.push({ ...product, cantidad });
+            }
+            updateCart();
+        }
+    </script>
+</body>
+
+</html>
